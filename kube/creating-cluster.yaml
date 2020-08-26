@@ -1,0 +1,21 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: K8s-cluster
+  region: eu-west-1
+
+# vpc:
+#  id: vpc-0b6bb3604b4e0ed6e
+#  cidr: "10.0.0.0/16"
+#  subnets:
+#    public:
+#      eu-west-1a: { id: subnet-07dc21538b6bd5d10 }
+#      eu-west-1b: { id: subnet-09777b25876c8fd8f }
+#    private: 
+#      eu-west-1a: { id: subnet-05137696a5ddff3b5 }
+#      eu-west-1b: { id: subnet-0a3519764b22a0de4 }
+nodeGroups:
+  - name: worker-nodes-group-1
+    instanceType: t2.micro
+    desiredCapacity: 2

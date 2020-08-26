@@ -1,0 +1,104 @@
+---
+# Ping localhost
+- name: Ping localhost
+  ping:
+
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+        
+- name: Install a list of packages
+  apt: 
+    pkg: 
+     - awscli
+     - python3-pip
+     - apt-transport-https 
+     - gnupg2
+     - curl
+
+- name: Set home directory of the user
+  set_fact:
+    home_dir: /home/{{ aws_cli_user }}
+  when: "not aws_cli_user == 'root'"
+
+- name: Set home directory for root
+  set_fact:
+    home_dir: /root
+  when: "aws_cli_user == 'root'" 
+  
+- name: 'Create the AWS config directory'
+  tags: 'aws-cli'
+  become: 'yes'
+  file: >
+    path={{ home_dir }}/.aws
+    state=directory
+    owner={{ aws_cli_user }}
+    group={{ aws_cli_group }}
+    mode=0755
+
+- name: 'Copy AWS CLI config'
+  tags: 'aws-cli'
+  become: 'yes'
+  template: >
+    src=aws_cli_config.j2
+    dest={{ home_dir }}/.aws/config
+    owner={{ aws_cli_user }}
+    group={{ aws_cli_group }}
+    mode=0600
+    
+- name: 'Copy AWS CLI credentials'
+  tags: 'aws-cli'
+  become: 'yes'
+  template: >
+    src=aws_cli_credentials.j2
+    dest={{ home_dir }}/.aws/credentials
+    owner={{ aws_cli_user }}
+    group={{ aws_cli_group }}
+    mode=0600
+    
+- name: Download eksctl
+  get_url:
+    url: https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz
+    dest: /home/eksctl_Linux_amd64.tar.gz
+    mode: '0755'
+- name: Move eksctl
+  unarchive:
+     src: /home/eksctl_Linux_amd64.tar.gz
+     dest: /usr/local/bin
+- name: Download kubectl
+  get_url:
+    url: https://amazon-eks.s3.us-west-2.amazonaws.com/1.17.9/2020-08-04/bin/linux/amd64/kubectl
+    dest: /tmp/kubectl
+    mode: '0755'
+    
+- name: Move kubectl
+  shell: mv /tmp/kubectl /usr/local/bin
+  
+- name: Checking versions eksctl and lubectl
+  shell: | 
+     eksctl version
+     kubectl version --short --client
+  register: logs
+- debug:
+    msg: '{{ logs }}'  
+    
+    
+- name: Create ckuster Kubernetes 
+  shell: eksctl create cluster -f /home/ansible/kube/creating-cluster.yaml
+  register: logs_kube
+  ignore_errors: yes
+- debug:
+    msg: '{{ logs_kube }}'
+    
+- name: kubectl get pods 
+  shell: kubectl get pods --all-namespaces
+  register: logs_kubectl_pods
+- debug:
+    msg: '{{ logs_kubectl_pods }}'
+  
+- name: Deploy Nginx app
+  shell: kubectl apply -f /home/ansible/kube/namespace-nginx.yaml -f /home/ansible/kube/deployment-nginx.yaml -f /home/ansible/kube/service-nginx.yaml
+  register: logs_kubectl_nginx
+- debug:
+    msg: '{{ logs_kubectl_nginx }}'
+  

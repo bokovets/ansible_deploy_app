@@ -1,0 +1,12 @@
+---
+- name: Deploy nginx app 
+  hosts: all 
+
+  roles: 
+   - role: deploy_nginx_app
+     aws_output_format: 'json'
+     aws_region: 'eu-west-1'
+     aws_access_key_id: '{Put_here_aws_access_key_id}'
+     aws_secret_access_key: '{Put_here_aws_secret_access_key}'
+
+
